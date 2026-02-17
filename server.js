@@ -8,7 +8,9 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
-
+app.get("/",(req,res)=>{
+  res.send("hello from this side")
+})
 // 1. Setup the "Mailman"
 const transporter = nodemailer.createTransport({
     service: 'gmail',
