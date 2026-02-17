@@ -13,11 +13,17 @@ app.get("/",(req,res)=>{
 })
 // 1. Setup the "Mailman"
 const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-    },
+  host: "smtp.gmail.com",
+  port: 587,
+  secure: false, // Must be false for port 587
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+  tls: {
+    // This helps bypass some network restrictions on cloud hosts
+    rejectUnauthorized: false 
+  }
 });
 
 // 2. The Inquiry Route
