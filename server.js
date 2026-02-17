@@ -1,78 +1,45 @@
 import express from 'express';
-import nodemailer from 'nodemailer';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import { Resend } from 'resend';
 
 dotenv.config();
-const app = express();
 
+const app = express();
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+// Middleware
 app.use(cors());
 app.use(express.json());
 
-// 1. Setup the "Mailman"
-const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-    },
-});
-
-// 2. The Inquiry Route
+// The Inquiry Route
 app.post('/api/contact', async (req, res) => {
-    const { name, email, message } = req.body;
-    const timestamp = new Date().toLocaleString();
+  const { name, email, message } = req.body;
 
-    // Replace the mailOptions in your server.js
-    const mailOptions = {
-        from: `"${name}" <${process.env.EMAIL_USER}>`,
-        to: process.env.EMAIL_USER,
-        replyTo: email,
-        subject: `DATALINK_ESTABLISHED: ${name.toUpperCase()}`,
-        html: `
-    <div style="background-color: #120a05; color: #ffffff; padding: 40px; font-family: 'Arial Black', sans-serif; border: 4px solid #ff4d00; max-width: 650px; margin: auto; box-shadow: 0 0 30px rgba(255, 77, 0, 0.4);">
-      
-      <div style="border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding-bottom: 20px; margin-bottom: 30px;">
-        <h1 style="color: #ff4d00; font-style: italic; text-transform: uppercase; font-size: 32px; letter-spacing: -2px; margin: 0;">
-          Incoming <span style="color: #ffaa00;">Transmission</span>
-        </h1>
-        <div style="font-size: 10px; color: #ff9d6e; letter-spacing: 3px; margin-top: 5px;">PROTOCOL: SECURE_INQUIRY_v1.0</div>
-      </div>
-
-      <div style="display: flex; gap: 10px; margin-bottom: 30px;">
-        <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 77, 0, 0.3); padding: 15px; flex: 1;">
-          <div style="font-size: 9px; color: #ff9d6e; text-transform: uppercase; letter-spacing: 2px;">Origin_Operator</div>
-          <div style="font-size: 18px; color: #fff;">${name}</div>
+  try {
+    const data = await resend.emails.send({
+      from: 'onboarding@resend.dev', 
+      to: 'harshilbuha119@gmail.com', 
+      subject: `PORTFOLIO TRANSMISSION: ${name}`,
+      html: `
+        <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
+          <h2 style="color: #8b5cf6;">New Message Received</h2>
+          <p><strong>Sender:</strong> ${name}</p>
+          <p><strong>Email:</strong> ${email}</p>
+          <hr style="border: 0; border-top: 1px solid #eee;" />
+          <p style="white-space: pre-wrap; color: #333;">${message}</p>
         </div>
-        <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 77, 0, 0.3); padding: 15px; flex: 1;">
-          <div style="font-size: 9px; color: #ff9d6e; text-transform: uppercase; letter-spacing: 2px;">Uplink_Signal</div>
-          <div style="font-size: 18px; color: #ffaa00;">${email}</div>
-        </div>
-      </div>
+      `,
+    });
 
-      <div style="background: rgba(255, 255, 255, 0.02); border-left: 4px solid #ff4d00; padding: 20px; margin-bottom: 30px;">
-        <div style="font-size: 10px; color: #666; margin-bottom: 15px;">// DECODING_MESSAGE_CONTENT...</div>
-        <p style="font-family: 'Courier New', monospace; font-size: 15px; line-height: 1.6; color: #ff9d6e; white-space: pre-wrap; margin: 0;">
-"${message}"
-        </p>
-      </div>
-
-      <div style="text-align: right;">
-        <span style="font-size: 10px; color: #444; text-transform: uppercase;">End of Signal | Ahmedabad_Base_India</span>
-      </div>
-    </div>
-  `,
-    };
-
-    try {
-        await transporter.sendMail(mailOptions);
-        res.status(200).json({ status: 'SUCCESS', message: 'Transmission Sent' });
-    } catch (error) {
-        console.error("Mail Error:", error);
-        res.status(500).json({ status: 'ERROR', message: 'Uplink Failed' });
-    }
+    res.status(200).json({ status: 'SUCCESS', data });
+  } catch (error) {
+    console.error("Resend Error:", error);
+    res.status(500).json({ status: 'ERROR', message: error.message });
+  }
 });
 
-app.listen(process.env.PORT, () => {
-    console.log(`Backend Terminal Active on Port ${process.env.PORT}`);
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server active on port ${PORT}`);
 });
